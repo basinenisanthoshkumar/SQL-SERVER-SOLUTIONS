@@ -1,41 +1,6 @@
-/****** Object:  StoredProcedure [dbo].[PS_DeletePreviousOnSaveActivity]    Script Date: 30-10-2023 17:01:34 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
-	@Id int =0
-AS
-BEGIN
-	
-	SET NOCOUNT ON;
-	If @Id<>0
-	Delete from PS_TrnPreActivityOnSaveDetails where Id=CONVERT(varchar, @Id)
-END
+----------------------if the input is comes string of list of integer to iterate each value use anyone of this method to acheive that---------
 
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [dbo].[UpdateTableFromJson]
-    @jsonData NVARCHAR(MAX)
-AS
-BEGIN
-    -- Update the table based on JSON array input
-    UPDATE FilePropertyMapping
-    SET PsId = JPM.psId,
-        PropertyID = JPM.propertyID,
-        PropertyValue = JPM.propertyValue
-    FROM FilePropertyMapping As PM
-    CROSS APPLY OPENJSON(@jsonData) WITH (
-        psId INT,
-        fileID INT,
-        propertyID INT,
-        propertyValue NVARCHAR(50)
-    ) AS JPM
-    WHERE PM.FileID = JPM.fileID AND PM.PropertyID = JPM.propertyID;
-END      
 
 
 CREATE OR ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
@@ -89,3 +54,27 @@ Certainly, let me explain the code step by step:
 8. Finally, the code executes a `DELETE` statement that uses the `IN` operator with a subquery to delete records from the table `PS_TrnPreActivityOnSaveDetails` where the `Id` column matches any of the values in the `@IdList` table variable.
 
 Ensure to run this SQL script in your SQL Server Management Studio or your preferred SQL environment to apply the changes to the stored procedure.
+
+
+CREATE OR ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
+    @IdListAsString NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IdList TABLE (Id INT);
+
+    -- Remove square brackets and any spaces from the input string
+    SET @IdListAsString = REPLACE(REPLACE(@IdListAsString, '[', ''), ']', '');
+    SET @IdListAsString = REPLACE(@IdListAsString, ' ', '');
+
+    -- Insert the values into the table variable
+    INSERT INTO @IdList (Id)
+    SELECT CAST(value AS INT)
+    FROM STRING_SPLIT(@IdListAsString, ',');
+
+    -- Delete rows based on the IDs in the @IdList table
+    DELETE FROM PS_TrnPreActivityOnSaveDetails 
+    WHERE Id IN (SELECT Id FROM @IdList);
+END;
+
