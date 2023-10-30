@@ -1,0 +1,79 @@
+----------------------if the input is comes string of list of integer to iterate each value use anyone of this method to acheive that---------
+
+
+
+
+CREATE OR ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
+    @IdListAsString NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @StartIndex INT, @EndIndex INT, @Value NVARCHAR(MAX), @CommaIndex INT;
+    DECLARE @IdList TABLE (Id INT);
+
+    SET @IdListAsString = REPLACE(REPLACE(@IdListAsString, '[', ''), ']', '');
+
+    WHILE LEN(@IdListAsString) > 0
+    BEGIN
+        SET @CommaIndex = CHARINDEX(',', @IdListAsString);
+
+        IF @CommaIndex > 0
+            SET @Value = LEFT(@IdListAsString, @CommaIndex - 1);
+        ELSE
+            SET @Value = @IdListAsString;
+
+        INSERT INTO @IdList (Id) VALUES (CAST(@Value AS INT));
+
+        IF @CommaIndex > 0
+            SET @IdListAsString = RIGHT(@IdListAsString, LEN(@IdListAsString) - @CommaIndex);
+        ELSE
+            SET @IdListAsString = '';
+    END;
+
+    DELETE FROM PS_TrnPreActivityOnSaveDetails 
+    WHERE Id IN (SELECT Id FROM @IdList);
+END;
+
+Certainly, let me explain the code step by step:
+
+1. The stored procedure `PS_DeletePreviousOnSaveActivity` takes a string `@IdListAsString` as input.
+
+2. Inside the stored procedure, we declare variables `@StartIndex`, `@EndIndex`, `@Value`, and `@CommaIndex`, as well as a table variable `@IdList` to store the list of integers.
+
+3. The line `SET @IdListAsString = REPLACE(REPLACE(@IdListAsString, '[', ''), ']', '');` removes the brackets '[' and ']' from the input string to extract the list of integers.
+
+4. The code then enters a `WHILE` loop that iterates as long as the length of the string `@IdListAsString` is greater than 0.
+
+5. Within the loop, the code finds the index of the comma using the `CHARINDEX` function. If a comma is found, it extracts the substring from the start to the comma. If no comma is found, it extracts the entire string.
+
+6. The extracted value is then cast to an integer and inserted into the `@IdList` table variable.
+
+7. After insertion, the code updates the value of `@IdListAsString` to continue the iteration process, removing the processed part of the string in each iteration.
+
+8. Finally, the code executes a `DELETE` statement that uses the `IN` operator with a subquery to delete records from the table `PS_TrnPreActivityOnSaveDetails` where the `Id` column matches any of the values in the `@IdList` table variable.
+
+Ensure to run this SQL script in your SQL Server Management Studio or your preferred SQL environment to apply the changes to the stored procedure.
+
+
+CREATE OR ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
+    @IdListAsString NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IdList TABLE (Id INT);
+
+    -- Remove square brackets and any spaces from the input string
+    SET @IdListAsString = REPLACE(REPLACE(@IdListAsString, '[', ''), ']', '');
+    SET @IdListAsString = REPLACE(@IdListAsString, ' ', '');
+
+    -- Insert the values into the table variable
+    INSERT INTO @IdList (Id)
+    SELECT CAST(value AS INT)
+    FROM STRING_SPLIT(@IdListAsString, ',');
+
+    -- Delete rows based on the IDs in the @IdList table
+    DELETE FROM PS_TrnPreActivityOnSaveDetails 
+    WHERE Id IN (SELECT Id FROM @IdList);
+END;
