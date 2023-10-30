@@ -36,3 +36,36 @@ BEGIN
     ) AS JPM
     WHERE PM.FileID = JPM.fileID AND PM.PropertyID = JPM.propertyID;
 END      
+
+
+CREATE OR ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
+    @IdListAsString NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @StartIndex INT, @EndIndex INT, @Value NVARCHAR(MAX), @CommaIndex INT;
+    DECLARE @IdList TABLE (Id INT);
+
+    SET @IdListAsString = REPLACE(REPLACE(@IdListAsString, '[', ''), ']', '');
+
+    WHILE LEN(@IdListAsString) > 0
+    BEGIN
+        SET @CommaIndex = CHARINDEX(',', @IdListAsString);
+
+        IF @CommaIndex > 0
+            SET @Value = LEFT(@IdListAsString, @CommaIndex - 1);
+        ELSE
+            SET @Value = @IdListAsString;
+
+        INSERT INTO @IdList (Id) VALUES (CAST(@Value AS INT));
+
+        IF @CommaIndex > 0
+            SET @IdListAsString = RIGHT(@IdListAsString, LEN(@IdListAsString) - @CommaIndex);
+        ELSE
+            SET @IdListAsString = '';
+    END;
+
+    DELETE FROM PS_TrnPreActivityOnSaveDetails 
+    WHERE Id IN (SELECT Id FROM @IdList);
+END;
