@@ -1,0 +1,38 @@
+/****** Object:  StoredProcedure [dbo].[PS_DeletePreviousOnSaveActivity]    Script Date: 30-10-2023 17:01:34 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[PS_DeletePreviousOnSaveActivity] 
+	@Id int =0
+AS
+BEGIN
+	
+	SET NOCOUNT ON;
+	If @Id<>0
+	Delete from PS_TrnPreActivityOnSaveDetails where Id=CONVERT(varchar, @Id)
+END
+
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[UpdateTableFromJson]
+    @jsonData NVARCHAR(MAX)
+AS
+BEGIN
+    -- Update the table based on JSON array input
+    UPDATE FilePropertyMapping
+    SET PsId = JPM.psId,
+        PropertyID = JPM.propertyID,
+        PropertyValue = JPM.propertyValue
+    FROM FilePropertyMapping As PM
+    CROSS APPLY OPENJSON(@jsonData) WITH (
+        psId INT,
+        fileID INT,
+        propertyID INT,
+        propertyValue NVARCHAR(50)
+    ) AS JPM
+    WHERE PM.FileID = JPM.fileID AND PM.PropertyID = JPM.propertyID;
+END      
